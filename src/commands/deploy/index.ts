@@ -3,7 +3,14 @@ import * as express from 'express'
 import * as path from 'node:path'
 import * as fs from 'node:fs/promises'
 import createLessLocalFolder from '../../helpers/createLessLocalFolder'
-import copyIndexFiles from '../../helpers/copyIndexFiles'
+import copyAPIRoutes from '../../helpers/copyAPIRoutes'
+import spawn from '../../utils/asyncSpawn'
+import {ChildProcessWithoutNullStreams, SpawnOptions} from 'node:child_process'
+const chokidar = require('chokidar')
+
+function wait(shouldWait: boolean) {
+  if (shouldWait) setTimeout(wait, 1000)
+}
 
 export default class Deploy extends Command {
   static description = 'Say Deploy'
@@ -15,7 +22,7 @@ Deploy friend from oclif! (./src/commands/Deploy/index.ts)
   ]
 
   static flags = {
-    // from: Flags.string({char: 'f', description: 'Who is saying Deploy', required: true}),
+    watch: Flags.boolean({char: 'w', description: 'Watch', required: false}),
   }
 
   static args = {
@@ -30,30 +37,17 @@ Deploy friend from oclif! (./src/commands/Deploy/index.ts)
     const lessLocalDir = path.join(rootDir, '.lesslocal')
     const destinationRoot = path.join(lessLocalDir, 'routes')
 
-    const routes = []
-
     await createLessLocalFolder(lessLocalDir, 'routes')
 
-    const apiFolders = await fs.readdir(sourceDir)
-    for (const apiFolder of apiFolders) {
-      const apiFolderPath = path.join(sourceDir, apiFolder)
-      if ((await fs.stat(apiFolderPath)).isDirectory()) {
-        const routeFolders = await fs.readdir(apiFolderPath)
-        for (const routeFolder of routeFolders) {
-          const sourceRouteDir = path.join(apiFolderPath, routeFolder)
-          const destinationRouteDir = path.join(destinationRoot, routeFolder)
+    const build = async () => {
+      console.log('[less] Building local api')
+      const routes = await copyAPIRoutes(sourceDir, destinationRoot)
 
-          await fs.mkdir(destinationRouteDir, {recursive: true})
-          await copyIndexFiles(sourceRouteDir, destinationRouteDir)
-          routes.push(routeFolder)
-        }
-      }
-    }
-
-    const indexFileContent = `
+      const indexFileContent = `
       const express = require('express');
       const app = express();
       app.use(express.urlencoded({ extended: false }));
+      app.use(express.json());
 
       ${routes.map(route => `
         const ${route} = require('./routes/${route}');
@@ -66,11 +60,11 @@ Deploy friend from oclif! (./src/commands/Deploy/index.ts)
       app.listen(3000, () => console.log('[less] Running locally on http://127.0.0.1:3000'));
     `
 
-    const routesFileContent = `
+      const routesFileContent = `
       const route = (handler, middlewares) => {
         return async (request, response) => {
           const res = {
-            body: request.body,
+            body: JSON.stringify(request.body),
             query: request.query,
             params: request.params
           };
@@ -87,9 +81,48 @@ Deploy friend from oclif! (./src/commands/Deploy/index.ts)
     module.exports = route;
     `
 
-    await Promise.all([
-      fs.writeFile(path.join(lessLocalDir, 'index.js'), indexFileContent, 'utf8'),
-      fs.writeFile(path.join(lessLocalDir, 'route.js'), routesFileContent, 'utf8'),
-    ])
+      await Promise.all([
+        fs.writeFile(path.join(lessLocalDir, 'index.js'), indexFileContent, 'utf8'),
+        fs.writeFile(path.join(lessLocalDir, 'route.js'), routesFileContent, 'utf8'),
+      ])
+    }
+
+    if (flags.watch) {
+      console.log('[less] Watching for changes...')
+      await build()
+
+      let shell: ChildProcessWithoutNullStreams | null
+
+      await spawn('node', ['.lesslocal'], {
+        stdio: 'inherit',
+        cwd: rootDir,
+      }, (sh: ChildProcessWithoutNullStreams) => {
+        shell = sh
+      })
+
+      chokidar.watch('src/apis/**/*', {
+        persistent: true,
+        cwd: rootDir,
+      }).on('change', async () => {
+        console.log('[less] Rebuilding local api...')
+        if (shell) shell.kill()
+        await build()
+        await spawn('node', ['.lesslocal'], {
+          stdio: 'inherit',
+          cwd: rootDir,
+        }, (sh: ChildProcessWithoutNullStreams) => {
+          shell = sh
+        })
+      })
+      return
+    }
+
+    // let shouldWait = true
+    await build()
+
+    await spawn('node', ['.lesslocal'], {
+      stdio: 'inherit',
+      cwd: rootDir,
+    }, () => {})
   }
 }
