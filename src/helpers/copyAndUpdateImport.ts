@@ -1,6 +1,5 @@
 import * as fs from 'node:fs/promises'
-import * as path from 'node:path'
-import createSymlinks from './createFolderSymlink'
+// import createSymlinks from './createFolderSymlink'
 
 const copyAndUpdateImport = async (sourceFilePath: string, destinationFilePath: string, routeFolder: string): Promise<void> => {
   try {
