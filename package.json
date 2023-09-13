@@ -1,15 +1,15 @@
 {
-  "name": "lesslocal",
-  "version": "0.0.0",
-  "description": "Run Less locally ",
+  "name": "@fabyosk/lesslocal",
+  "version": "1.0.0-beta-1",
+  "description": "Run Less locally",
   "author": "Fábio Alves @FabyoSK",
   "bin": {
     "lesslocal": "./bin/run"
   },
-  "homepage": "https://github.com/y/y",
+  "homepage": "https://github.com/FabyoSK/lesslocal",
   "license": "MIT",
   "main": "dist/index.js",
-  "repository": "y/y",
+  "repository": "https://github.com/FabyoSK/lesslocal",
   "files": [
     "/bin",
     "/dist",
@@ -21,7 +21,7 @@
     "@oclif/plugin-help": "^5",
     "@oclif/plugin-plugins": "^3.2.0",
     "@types/express": "^4.17.17",
-    "chokidar": "^3.5.3",
+    "chokidar": "^3.5.3"
   },
   "devDependencies": {
     "@oclif/test": "^2.4.4",
@@ -48,11 +48,6 @@
       "@oclif/plugin-plugins"
     ],
     "topicSeparator": " ",
-    "topics": {
-      "hello": {
-        "description": "Say hello to the world and others"
-      }
-    },
     "hooks": {
       "predeploy": "./dist/hooks/predeploy",
       "postdeploy": "./dist/hooks/postdeploy"
@@ -70,7 +65,7 @@
   "engines": {
     "node": ">=12.0.0"
   },
-  "bugs": "https://github.com/y/y/issues",
+  "bugs": "https://github.com/FabyoSK/lesslocal/issues",
   "keywords": [
     "oclif"
   ],
