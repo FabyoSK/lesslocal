@@ -1,41 +1,40 @@
-import { Command, Flags} from '@oclif/core'
-import * as path from 'node:path'
-import * as fs from 'node:fs/promises'
-import createLessLocalFolder from '../../helpers/createLessLocalFolder'
-import copyAPIRoutes from '../../helpers/copyAPIRoutes'
+import { Command, Flags } from '@oclif/core';
+import * as path from 'node:path';
+import * as fs from 'node:fs/promises';
+import createLessLocalFolder from '../../helpers/createLessLocalFolder';
+import copyAPIRoutes from '../../helpers/copyAPIRoutes';
 
-import {spawn} from 'node:child_process'
-const chokidar = require('chokidar')
+import { spawn } from 'node:child_process';
+import * as chokidar from 'chokidar';
 
 export default class Deploy extends Command {
-  static description = 'Say Deploy'
+  static description = 'Deploy your infrastructure locally'
 
   static examples = [
-    `$ oex Deploy friend --from oclif
-Deploy friend from oclif! (./src/commands/Deploy/index.ts)
-`,
+    '$ lesslocal deploy',
+    '$ lesslocal deploy --watch',
   ]
 
   static flags = {
-    watch: Flags.boolean({char: 'w', description: 'Watch', required: false}),
+    watch: Flags.boolean({ char: 'w', description: 'Watch for changes', required: false }),
   }
 
   static args = {}
 
   async run(): Promise<void> {
-    const {flags} = await this.parse(Deploy)
+    const { flags } = await this.parse(Deploy);
 
-    const rootDir = process.cwd()
-    const sourceDir = path.join(rootDir, 'src', 'apis')
-    const lessLocalDir = path.join(rootDir, '.lesslocal')
+    const rootDir = process.cwd();
+    const sourceDir = path.join(rootDir, 'src', 'apis');
+    const lessLocalDir = path.join(rootDir, '.lesslocal');
 
-    const destinationRoot = path.join(lessLocalDir, 'routes')
+    const destinationRoot = path.join(lessLocalDir, 'routes');
 
-    await createLessLocalFolder(lessLocalDir, 'routes')
+    await createLessLocalFolder(lessLocalDir, 'routes');
 
     const build = async () => {
-      console.log('[less] Building local api')
-      const routes = await copyAPIRoutes(sourceDir, destinationRoot)
+      console.log('[less] Building local api');
+      const routes = await copyAPIRoutes(sourceDir, destinationRoot);
 
       const indexFileContent = `
       const express = require('express');
@@ -51,7 +50,7 @@ Deploy friend from oclif! (./src/commands/Deploy/index.ts)
       `).join('')}
 
       app.listen(3000, () => console.log('[less] Running locally on http://127.0.0.1:3000'));
-    `
+    `;
 
       const routesFileContent = `
       const route = (handler, middlewares) => {
@@ -72,69 +71,69 @@ Deploy friend from oclif! (./src/commands/Deploy/index.ts)
         }
     };
     module.exports = route;
-    `
+    `;
 
       await Promise.all([
         fs.writeFile(path.join(lessLocalDir, 'index.js'), indexFileContent, 'utf8'),
         fs.writeFile(path.join(lessLocalDir, 'route.js'), routesFileContent, 'utf8'),
-      ])
-    }
+      ]);
+    };
 
-    await this.config.runHook('predeploy', {})
-    await build()
+    await this.config.runHook('predeploy', {});
+    await build();
 
     process.on('SIGINT', async () => {
-      console.log('[less] Exiting grafully...')
-      await this.config.runHook('postdeploy', {})
-      console.log('[less] 🇨🇻')
-    })
+      console.log('[less] Exiting grafully...');
+      await this.config.runHook('postdeploy', {});
+      console.log('[less] 🇨🇻');
+    });
 
     if (flags.watch) {
-      console.log('[less] Watching for changes...')
+      console.log('[less] Watching for changes...');
 
       let shell = spawn('node', ['.lesslocal'], {
         stdio: 'inherit',
         cwd: rootDir,
-      })
+      });
 
-      return new Promise((resolve, reject) => {
+      return new Promise(() => {
         chokidar.watch('src/apis/**/*', {
           persistent: true,
           cwd: rootDir,
         })
         .on('change', async () => {
-          console.log('[less] Rebuilding local api...')
-          if (shell) shell.kill()
-          await build()
+          console.log('[less] Rebuilding local api...');
+          if (shell) shell.kill();
+          await build();
           shell = spawn('node', ['.lesslocal'], {
             stdio: 'inherit',
             cwd: rootDir,
-          })
-        })
+          });
+        });
 
         chokidar.watch('src/shared/**/*', {
           persistent: true,
           cwd: rootDir,
         })
         .on('change', async () => {
-          console.log('[less] Rebuilding shared...')
-          await this.config.runHook('postdeploy', {})
-          await this.config.runHook('predeploy', {})
+          console.log('[less] Rebuilding shared...');
+          await this.config.runHook('postdeploy', {});
+          await this.config.runHook('predeploy', {});
 
-          if (shell) shell.kill()
+          if (shell) shell.kill();
           shell = spawn('node', ['.lesslocal'], {
             stdio: 'inherit',
             cwd: rootDir,
-          })
-        })
-      })
+          });
+        });
+      });
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise(() => {
       spawn('node', ['.lesslocal'], {
         stdio: 'inherit',
         cwd: rootDir,
-      })
-    })
+      });
+    });
   }
 }
