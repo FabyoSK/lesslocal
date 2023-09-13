@@ -14,11 +14,11 @@ oclif example Hello World CLI
 # Usage
 <!-- usage -->
 ```sh-session
-$ npm install -g lesslocal
+$ npm install -g @fabyosk/lesslocal
 $ lesslocal COMMAND
 running command...
 $ lesslocal (--version)
-lesslocal/0.0.0 darwin-x64 node-v16.20.0
+@fabyosk/lesslocal/1.0.0-beta-1 darwin-x64 node-v16.20.0
 $ lesslocal --help [COMMAND]
 USAGE
   $ lesslocal COMMAND
@@ -27,8 +27,7 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-* [`lesslocal hello PERSON`](#lesslocal-hello-person)
-* [`lesslocal hello world`](#lesslocal-hello-world)
+* [`lesslocal deploy`](#lesslocal-deploy)
 * [`lesslocal help [COMMANDS]`](#lesslocal-help-commands)
 * [`lesslocal plugins`](#lesslocal-plugins)
 * [`lesslocal plugins:install PLUGIN...`](#lesslocal-pluginsinstall-plugin)
@@ -40,47 +39,27 @@ USAGE
 * [`lesslocal plugins:uninstall PLUGIN...`](#lesslocal-pluginsuninstall-plugin-2)
 * [`lesslocal plugins update`](#lesslocal-plugins-update)
 
-## `lesslocal hello PERSON`
+## `lesslocal deploy`
 
-Say hello
+Deploy your infrastructure locally
 
 ```
 USAGE
-  $ lesslocal hello PERSON -f <value>
-
-ARGUMENTS
-  PERSON  Person to say hello to
+  $ lesslocal deploy [-w]
 
 FLAGS
-  -f, --from=<value>  (required) Who is saying hello
+  -w, --watch  Watch for changes
 
 DESCRIPTION
-  Say hello
+  Deploy your infrastructure locally
 
 EXAMPLES
-  $ oex hello friend --from oclif
-  hello friend from oclif! (./src/commands/hello/index.ts)
+  $ lesslocal deploy
+
+  $ lesslocal deploy --watch
 ```
 
-_See code: [dist/commands/hello/index.ts](https://github.com/y/y/blob/v0.0.0/dist/commands/hello/index.ts)_
-
-## `lesslocal hello world`
-
-Say hello world
-
-```
-USAGE
-  $ lesslocal hello world
-
-DESCRIPTION
-  Say hello world
-
-EXAMPLES
-  $ lesslocal hello world
-  hello world! (./src/commands/hello/world.ts)
-```
-
-_See code: [dist/commands/hello/world.ts](https://github.com/y/y/blob/v0.0.0/dist/commands/hello/world.ts)_
+_See code: [dist/commands/deploy/index.ts](https://github.com/FabyoSK/lesslocal/blob/v1.0.0-beta-1/dist/commands/deploy/index.ts)_
 
 ## `lesslocal help [COMMANDS]`
 
