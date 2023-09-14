@@ -1,11 +1,12 @@
 import { Command, Flags } from '@oclif/core';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
-import createLessLocalFolder from '../../helpers/createLessLocalFolder';
-import copyAPIRoutes from '../../helpers/copyAPIRoutes';
-
 import { spawn } from 'node:child_process';
 import * as chokidar from 'chokidar';
+
+import createLessLocalFolder from '../../helpers/createLessLocalFolder';
+import copyAPIRoutes from '../../helpers/copyAPIRoutes';
+import checkDevDependency from '../../helpers/checkDevDependency';
 
 export default class Deploy extends Command {
   static description = 'Deploy your infrastructure locally'
@@ -30,6 +31,7 @@ export default class Deploy extends Command {
 
     const destinationRoot = path.join(lessLocalDir, 'routes');
 
+    await checkDevDependency(rootDir, 'express');
     await createLessLocalFolder(lessLocalDir, 'routes');
 
     const build = async () => {
