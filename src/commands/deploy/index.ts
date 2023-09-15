@@ -1,14 +1,15 @@
 import { Command, Flags } from '@oclif/core';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
+import { spawn } from 'node:child_process';
 
 import createLessLocalFolder from '../../helpers/createLessLocalFolder';
 import copyAPIRoutes from '../../helpers/copyAPIRoutes';
 import copyTopics from '../../helpers/topics/copyTopics';
 import symlinkLess from '../../helpers/symlinkLess';
 import checkDevDependency from '../../helpers/checkDevDependency';
+import copyCrons from '../../helpers/crons/copyCrons';
 
-import { spawn } from 'node:child_process';
 import * as chokidar from 'chokidar';
 
 export default class Deploy extends Command {
@@ -37,9 +38,12 @@ export default class Deploy extends Command {
     const routesDir = path.join(lessLocalDir, 'routes');
     const topicsDir = path.join(lessModuleDir, 'topics');
 
-    await checkDevDependency(rootDir, 'express');
     await createLessLocalFolder(lessLocalDir, 'routes');
+    await createLessLocalFolder(lessLocalDir, 'crons');
     await createLessLocalFolder(lessModuleDir, 'topics');
+
+    await checkDevDependency(rootDir, 'express');
+    await checkDevDependency(rootDir, 'node-cron');
 
     const buildApis = async () => {
       console.log('[less] Building local api');
@@ -51,6 +55,8 @@ export default class Deploy extends Command {
       app.use(express.urlencoded({ extended: false }));
       app.use(express.json());
 
+      const startCron = require('./crons');
+
       ${routes.map(route => `
         const ${route} = require('./routes/${route}');
 
@@ -58,7 +64,10 @@ export default class Deploy extends Command {
         if (${route}.post) app.post('/${route}', ${route}.post);
       `).join('')}
 
-      app.listen(3000, () => console.log('[less] Running locally on http://127.0.0.1:3000'));
+      app.listen(3000, () => {
+        console.log('[less] Running locally on http://127.0.0.1:3000');
+        startCron();
+      })
     `;
 
       const routesFileContent = `
@@ -89,6 +98,7 @@ export default class Deploy extends Command {
     };
 
     const buildTopics = async () => {
+      console.log('[less] Building topics');
       const topics = await copyTopics(topicsSourceDir, topicsDir);
 
       if (!topics) {
@@ -109,9 +119,18 @@ export default class Deploy extends Command {
       await fs.writeFile(path.join(topicsDir, 'index.js'), topicIndexContent, 'utf8');
     };
 
+    const buildCrons = async () => {
+      console.log('[less] Building crons');
+      await copyCrons(
+        path.join(rootDir, 'src', 'crons'),
+        path.join(lessLocalDir, 'crons'),
+      );
+    };
+
     await this.config.runHook('predeploy', {});
     await buildApis();
     await buildTopics();
+    await buildCrons();
 
     await fs.writeFile(
       path.join(lessModuleDir, 'index.js'),
@@ -187,6 +206,20 @@ export default class Deploy extends Command {
           console.log('[less] Rebuilding topics...');
           if (shell) shell.kill();
           await buildTopics();
+          shell = spawn('node', ['.lesslocal'], {
+            stdio: 'inherit',
+            cwd: rootDir,
+          });
+        });
+
+        chokidar.watch('src/crons/**/*', {
+          persistent: true,
+          cwd: rootDir,
+        })
+        .on('change', async () => {
+          console.log('[less] Rebuilding crons...');
+          if (shell) shell.kill();
+          await buildCrons();
           shell = spawn('node', ['.lesslocal'], {
             stdio: 'inherit',
             cwd: rootDir,
