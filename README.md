@@ -12,7 +12,7 @@ $ npm install -g @fabyosk/lesslocal
 $ lesslocal COMMAND
 running command...
 $ lesslocal (--version)
-@fabyosk/lesslocal/1.0.0-beta-2 darwin-x64 node-v16.20.0
+@fabyosk/lesslocal/1.0.0-beta-6 darwin-x64 node-v16.20.0
 $ lesslocal --help [COMMAND]
 USAGE
   $ lesslocal COMMAND
@@ -44,7 +44,7 @@ EXAMPLES
   $ lesslocal deploy --watch
 ```
 
-_See code: [dist/commands/deploy/index.ts](https://github.com/FabyoSK/lesslocal/blob/v1.0.0-beta-2/dist/commands/deploy/index.ts)_
+_See code: [dist/commands/deploy/index.ts](https://github.com/FabyoSK/lesslocal/blob/v1.0.0-beta-6/dist/commands/deploy/index.ts)_
 
 ## `lesslocal help [COMMANDS]`
 

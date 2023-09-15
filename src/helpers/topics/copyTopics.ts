@@ -6,7 +6,6 @@ const copyTopics = async (sourceFilePath: string, destinationFilePath: string): 
     // read ./src/topics and copy the folders
 
     const topics = await fs.readdir(sourceFilePath);
-    console.log('🚀 FSK >> file: copyTopics.ts:13 >> topics:', topics);
     for (const topic of topics) {
       const destinationTopicPath = path.join(destinationFilePath, topic);
       await fs.mkdir(destinationTopicPath);

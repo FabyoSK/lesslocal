@@ -1,6 +1,6 @@
 {
   "name": "@fabyosk/lesslocal",
-  "version": "1.0.0-beta-2",
+  "version": "1.0.0-beta-7",
   "description": "Run Less locally",
   "author": "Fábio Alves @FabyoSK",
   "bin": {

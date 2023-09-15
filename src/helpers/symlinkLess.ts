@@ -8,9 +8,7 @@ const symlinkLess = async (sourceDir: string, destinationDir: string): Promise<v
       path.join(destinationDir),
       'dir',
     );
-  } catch (error) {
-    console.error(`Error updating and copying ${destinationDir}:`, error);
-  }
+  } catch {}
 };
 
 export default symlinkLess;
