@@ -62,7 +62,7 @@
     "version": "oclif readme && git add README.md"
   },
   "engines": {
-    "node": ">=12.0.0"
+    "node": ">=16.x"
   },
   "bugs": "https://github.com/FabyoSK/lesslocal/issues",
   "keywords": [

@@ -137,7 +137,6 @@ export default class Deploy extends Command {
 
     process.on('SIGINT', async () => {
       console.log('[less] Exiting grafully...');
-      await this.config.runHook('postdeploy', {});
       console.log('[less] 🇨🇻');
     });
 
@@ -169,10 +168,7 @@ export default class Deploy extends Command {
           cwd: rootDir,
         })
         .on('change', async () => {
-          console.log('[less] Rebuilding shared...');
-          await this.config.runHook('postdeploy', {});
-          await this.config.runHook('predeploy', {});
-
+          console.log('[less] Reloading server...');
           if (shell) shell.kill();
           shell = spawn('node', ['.lesslocal'], {
             stdio: 'inherit',
