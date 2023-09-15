@@ -3,6 +3,8 @@ import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import createLessLocalFolder from '../../helpers/createLessLocalFolder';
 import copyAPIRoutes from '../../helpers/copyAPIRoutes';
+import copyTopics from '../../helpers/topics/copyTopics';
+import symlinkLess from '../../helpers/symlinkLess';
 
 import { spawn } from 'node:child_process';
 import * as chokidar from 'chokidar';
@@ -25,16 +27,20 @@ export default class Deploy extends Command {
     const { flags } = await this.parse(Deploy);
 
     const rootDir = process.cwd();
-    const sourceDir = path.join(rootDir, 'src', 'apis');
+    const apisSourceDir = path.join(rootDir, 'src', 'apis');
+    const topicsSourceDir = path.join(rootDir, 'src', 'topics');
     const lessLocalDir = path.join(rootDir, '.lesslocal');
 
-    const destinationRoot = path.join(lessLocalDir, 'routes');
+    const lessModuleDir = path.join(lessLocalDir, 'less');
+    const routesDir = path.join(lessLocalDir, 'routes');
+    const topicsDir = path.join(lessModuleDir, 'topics');
 
     await createLessLocalFolder(lessLocalDir, 'routes');
+    await createLessLocalFolder(lessModuleDir, 'topics');
 
-    const build = async () => {
+    const buildApis = async () => {
       console.log('[less] Building local api');
-      const routes = await copyAPIRoutes(sourceDir, destinationRoot);
+      const routes = await copyAPIRoutes(apisSourceDir, routesDir);
 
       const indexFileContent = `
       const express = require('express');
@@ -55,14 +61,14 @@ export default class Deploy extends Command {
       const routesFileContent = `
       const route = (handler, middlewares) => {
         return async (request, response) => {
-          const res = {
+          const req = {
             body: JSON.stringify(request.body),
             query: request.query,
             params: request.params
           };
 
           const result = await handler(
-            res, {}
+            req, {}
           );
 
           response
@@ -75,12 +81,59 @@ export default class Deploy extends Command {
 
       await Promise.all([
         fs.writeFile(path.join(lessLocalDir, 'index.js'), indexFileContent, 'utf8'),
-        fs.writeFile(path.join(lessLocalDir, 'route.js'), routesFileContent, 'utf8'),
+        fs.writeFile(path.join(lessModuleDir, 'route.js'), routesFileContent, 'utf8'),
       ]);
     };
 
+    const buildTopics = async () => {
+      const topics = await copyTopics(topicsSourceDir, topicsDir);
+
+      if (!topics) {
+        return;
+      }
+
+      const topicIndexContent = `
+        ${topics.map(
+    topic =>
+      `const ${topic} = require('./${topic}');`,
+  ).join('\n')}
+
+          module.exports = {
+            ${topics.map(topic => topic).join(',\n')}
+          };
+      `;
+
+      await fs.writeFile(path.join(topicsDir, 'index.js'), topicIndexContent, 'utf8');
+    };
+
     await this.config.runHook('predeploy', {});
-    await build();
+    await buildApis();
+    await buildTopics();
+
+    await fs.writeFile(
+      path.join(lessModuleDir, 'index.js'),
+      `
+        const topics = require('./topics');
+        const route = require('./route');
+
+        module.exports = {
+          topics,
+          route,
+        };
+      `,
+      'utf8',
+    );
+
+    const lessNodeModuleDir = path.join(rootDir, 'node_modules', '@chuva.io');
+
+    try {
+      await fs.mkdir(lessNodeModuleDir);
+    } catch {}
+
+    await symlinkLess(
+      lessModuleDir,
+      path.join(lessNodeModuleDir, 'less'),
+    );
 
     process.on('SIGINT', async () => {
       console.log('[less] Exiting grafully...');
@@ -104,7 +157,7 @@ export default class Deploy extends Command {
         .on('change', async () => {
           console.log('[less] Rebuilding local api...');
           if (shell) shell.kill();
-          await build();
+          await buildApis();
           shell = spawn('node', ['.lesslocal'], {
             stdio: 'inherit',
             cwd: rootDir,
@@ -121,6 +174,20 @@ export default class Deploy extends Command {
           await this.config.runHook('predeploy', {});
 
           if (shell) shell.kill();
+          shell = spawn('node', ['.lesslocal'], {
+            stdio: 'inherit',
+            cwd: rootDir,
+          });
+        });
+
+        chokidar.watch('src/topics/**/*', {
+          persistent: true,
+          cwd: rootDir,
+        })
+        .on('change', async () => {
+          console.log('[less] Rebuilding topics...');
+          if (shell) shell.kill();
+          await buildTopics();
           shell = spawn('node', ['.lesslocal'], {
             stdio: 'inherit',
             cwd: rootDir,

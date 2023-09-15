@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import copyAndUpdateImport from './copyAndUpdateImport';
+import copyFile from './copyFile';
 
 const copyAndUpdateIndexFiles = async (sourceDir: string, destinationDir: string, routeFolder: string): Promise<void> => {
   try {
@@ -17,7 +17,7 @@ const copyAndUpdateIndexFiles = async (sourceDir: string, destinationDir: string
           await fs.mkdir(destinationFilePath, { recursive: true });
           await copyAndUpdateIndexFiles(sourceFilePath, destinationFilePath, routeFolder);
         } else if (file === 'index.js') {
-          await copyAndUpdateImport(sourceFilePath, destinationFilePath);
+          await copyFile(sourceFilePath, destinationFilePath);
         }
       }),
     );
