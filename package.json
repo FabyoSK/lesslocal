@@ -17,6 +17,8 @@
     "/oclif.manifest.json"
   ],
   "dependencies": {
+    "@inquirer/confirm": "^2.0.12",
+    "@inquirer/prompts": "^3.1.1",
     "@oclif/core": "^2",
     "@oclif/plugin-help": "^5",
     "@oclif/plugin-plugins": "^3.2.0",

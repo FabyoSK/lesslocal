@@ -1,10 +1,12 @@
 import { Command, Flags } from '@oclif/core';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
+
 import createLessLocalFolder from '../../helpers/createLessLocalFolder';
 import copyAPIRoutes from '../../helpers/copyAPIRoutes';
 import copyTopics from '../../helpers/topics/copyTopics';
 import symlinkLess from '../../helpers/symlinkLess';
+import checkDevDependency from '../../helpers/checkDevDependency';
 
 import { spawn } from 'node:child_process';
 import * as chokidar from 'chokidar';
@@ -35,6 +37,7 @@ export default class Deploy extends Command {
     const routesDir = path.join(lessLocalDir, 'routes');
     const topicsDir = path.join(lessModuleDir, 'topics');
 
+    await checkDevDependency(rootDir, 'express');
     await createLessLocalFolder(lessLocalDir, 'routes');
     await createLessLocalFolder(lessModuleDir, 'topics');
 
