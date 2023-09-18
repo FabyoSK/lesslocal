@@ -42,7 +42,6 @@ export default class Deploy extends Command {
     await createLessLocalFolder(lessLocalDir, 'crons');
     await createLessLocalFolder(lessModuleDir, 'topics');
 
-    await checkDevDependency(rootDir, 'express');
     await checkDevDependency(rootDir, 'node-cron');
 
     const buildApis = async () => {
@@ -50,45 +49,64 @@ export default class Deploy extends Command {
       const routes = await copyAPIRoutes(apisSourceDir, routesDir);
 
       const indexFileContent = `
-      const express = require('express');
-      const app = express();
-      app.use(express.urlencoded({ extended: false }));
-      app.use(express.json());
+      const http = require('http');
+      const url = require('url');
+      const querystring = require('querystring');
 
       const startCron = require('./crons');
 
       ${routes.map(route => `
         const ${route} = require('./routes/${route}');
-
-        if (${route}.get) app.get('/${route}', ${route}.get);
-        if (${route}.post) app.post('/${route}', ${route}.post);
       `).join('')}
 
-      app.listen(3000, () => {
+      const server = http.createServer((req, res) => {
+        const parsedUrl = url.parse(req.url);
+        const trimmedPath = parsedUrl.pathname.replace(/^\\/+|\\/+$/g, '');
+
+        ${routes.map(route => `
+          if (trimmedPath === '${route}') {
+            if (${route}.get && req.method.toLowerCase() === 'get') {
+              ${route}.get(req, res);
+            }
+            if (${route}.post && req.method.toLowerCase() === 'post') {
+              let body = '';
+              req.on('data', (chunk) => {
+                body += chunk.toString();
+              });
+              req.on('end', () => {
+                req.body = querystring.parse(body);
+                ${route}.post(req, res);
+              });
+            }
+          }
+        `).join('')}
+      });
+
+      server.listen(3000, () => {
         console.log('[less] Running locally on http://127.0.0.1:3000');
         startCron();
-      })
-    `;
+      });`;
 
       const routesFileContent = `
+      const url = require('url');
+
       const route = (handler, middlewares) => {
-        return async (request, response) => {
-          const req = {
-            body: JSON.stringify(request.body),
-            query: request.query,
-            params: request.params
-          };
+          return async (request, response) => {
+              const reqUrl = url.parse(request.url, true);
+              const req = {
+                  body: JSON.stringify(request.body),
+                  query: reqUrl.query,
+                  params: request.params
+              };
 
-          const result = await handler(
-            req, {}
-          );
+              const result = await handler(req, {});
 
-          response
-            .status(result.statusCode || 200)
-            .json(result.body);
-        }
-    };
-    module.exports = route;
+              response.writeHead(result.statusCode || 200, {'Content-Type': 'application/json'});
+              response.end(JSON.stringify(result.body));
+          }
+      };
+
+      module.exports = route;
     `;
 
       await Promise.all([
