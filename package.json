@@ -21,7 +21,7 @@
     "@inquirer/prompts": "^3.1.1",
     "@oclif/core": "^2",
     "@oclif/plugin-help": "^5",
-    "@oclif/plugin-plugins": "^3.7.0",
+    "@oclif/plugin-plugins": "^3.9.4",
     "chokidar": "^3.5.3"
   },
   "devDependencies": {
